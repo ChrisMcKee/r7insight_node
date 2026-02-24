@@ -28,15 +28,6 @@ const levels = [
   'emerg'
 ];
 
-const bunyanLevels = [
-  'trace',
-  'debug',
-  'info',
-  'warn',
-  'error',
-  'fatal'
-];
-
 const debug = false;
 
 /**
@@ -57,7 +48,6 @@ const debugLogger = (() => {
 module.exports = {
   baseHost,
   bufferSize,
-  bunyanLevels,
   debug,
   debugLogger,
   inactivityTimeout,

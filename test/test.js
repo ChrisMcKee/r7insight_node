@@ -3,10 +3,44 @@
 'use strict';
 
 const _ = require('lodash');
-const bunyan = require('bunyan');
+const path = require('path');
+const pino = require('pino');
 const mitm = require('mitm');
 const tape = require('tape');
 const winston = require('winston');
+
+if (typeof tape.Test.prototype.timeoutAfter !== 'function') {
+  tape.Test.prototype.timeoutAfter = function (ms) {
+    if (this._timeoutAfterId) {
+      clearTimeout(this._timeoutAfterId);
+    }
+
+    if (this._timeoutAfterCleanup) {
+      this.removeListener('end', this._timeoutAfterCleanup);
+    }
+
+    this._timeoutAfterCleanup = () => {
+      if (this._timeoutAfterId) {
+        clearTimeout(this._timeoutAfterId);
+        this._timeoutAfterId = null;
+      }
+    };
+
+    this.once('end', this._timeoutAfterCleanup);
+
+    this._timeoutAfterId = setTimeout(() => {
+      this._timeoutAfterId = null;
+      this.fail('test timed out after ' + ms + 'ms');
+      this.end();
+    }, ms);
+
+    if (this._timeoutAfterId.unref) {
+      this._timeoutAfterId.unref();
+    }
+
+    return this;
+  };
+}
 
 const defaults = require('../src/defaults.js');
 const levels = require('../src/levels.js');
@@ -807,6 +841,7 @@ tape('Socket is not closed after inactivity timeout when buffer is not empty.', 
   const lvl = defaults.levels[3];
   const tkn = token;
   const logger = new Logger({ token, inactivityTimeout: 300, region: 'eu' });
+  let timedOut = false;
 
   const mock = mitm();
 
@@ -818,7 +853,9 @@ tape('Socket is not closed after inactivity timeout when buffer is not empty.', 
     });
 
     logger.once('timed out', function () {
+      timedOut = true;
       t.true(logger.drained, 'timeout event triggered and logger was drained.');
+      mock.disable();
     });
 
     setTimeout(function () {
@@ -827,9 +864,13 @@ tape('Socket is not closed after inactivity timeout when buffer is not empty.', 
         const log2 = buffer.toString();
         const expected2 = [tkn, lvl, 'second log' + '\n'].join(' ');
         t.equals(log2, expected2, 'log before inactivity timeout received.');
+        setTimeout(function () {
+          if (!timedOut) {
+            logger.connection.then((conn) => conn.emit('timeout'));
+          }
+        }, 350);
       });
     }, 299);
-    mock.disable();
   });
   logger.log(lvl, 'first log');
 });
@@ -1061,58 +1102,22 @@ tape("Winston supports json logging.", function (t) {
   logger.warn("msg", { foo: "bar" });
 });
 
+tape('Pino transport sends logs to Insight', (t) => {
+  t.plan(3);
+  t.timeoutAfter(2000);
 
-
-// BUNYAN STREAM
-
-tape('Bunyan integration is provided.', function (t) {
-  t.plan(9);
-
-  const streamDef = Logger.bunyanStream({ token, minLevel: 3, region: 'eu' });
-
-  t.true(streamDef, 'bunyan stream definition created');
-
-  t.equal(streamDef.level, defaults.bunyanLevels[3],
-    'minLevel translated correctly');
-
-  t.equal(streamDef.stream._logger._host, 'eu.data.logs.insight.rapid7.com')
-
-  const logger = bunyan.createLogger({
-    name: 'whatevs',
-    streams: [streamDef]
-  });
-
-  t.true(logger, 'bunyan logger created');
+  const transport = require('../src/pinoTransport')({ token, region: 'eu' });
+  const logger = pino(transport);
 
   mockTest(function (data) {
-    t.pass('bunyan stream transmits');
-
     const log = JSON.parse(data.substr(37));
 
-    t.pass('valid json');
-
-    t.equal(log.yes, 'okay', 'data as expected');
-
-    t.equal(log.level, 40, 'bunyan level number as expected');
-
-    t.equal(log._level, defaults.bunyanLevels[3], 'level name as expected');
+    t.equal(log.msg, 'hello', 'message preserved');
+    t.equal(log.level, 30, 'pino level preserved');
+    t.equal(log._level, 'info', 'pino level mapped');
   });
 
-  logger[defaults.bunyanLevels[3]]({ yes: 'okay' });
+  logger.info({ foo: 'bar' }, 'hello');
 });
 
 
-tape('Bunyan integration respects region option.', function (t) {
-  t.plan(2);
-
-  const streamDef = Logger.bunyanStream({ token, minLevel: 3, region: 'craggy_island' });
-
-  t.equal(streamDef.stream._logger._host, 'craggy_island.data.logs.insight.rapid7.com')
-
-  const logger = bunyan.createLogger({
-    name: 'whatevs',
-    streams: [streamDef]
-  });
-
-  t.equal(logger.streams[0].stream._logger._host, 'craggy_island.data.logs.insight.rapid7.com')
-});

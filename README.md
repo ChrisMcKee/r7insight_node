@@ -38,8 +38,7 @@ for browser-specific logging needs.
   - [Using as a Winston ‘Transport’](#using-as-a-winston-transport)
     - [Pre-requisites](#pre-requisites)
     - [Code Example](#code-example)
-  - [Using with Bunyan](#using-with-bunyan)
-  - [Using with Ts.ED Logger](#using-with-tsed-logger)
+  - [Using with Pino](#using-with-pino)
 
 ## Start
 
@@ -416,57 +415,25 @@ const Logger = require('r7insight_node');
 Logger.provisionWinston();
 ```
 
-## Using with Bunyan
+## Using with Pino
 
-For Bunyan it’s like so:
+For Pino (v7/v8) it’s like so:
 
 ```javascript
-const bunyan = require('bunyan');
-const Logger = require('r7insight_node');
+const pino = require('pino');
 
-const loggerDefinition = Logger.bunyanStream({ token: '<token', region: '<region>' });
-
-// One stream
-const logger1 = bunyan.createLogger(loggerDefinition);
-
-// Multiple streams
-const logger2 = bunyan.createLogger({
-	name: 'my leg',
-	streams: [ loggerDefinition, otherLoggerDefinition ]
-});
-```
-
-As with Winston, the options argument takes the normal constructor options (with
-the exception of `timestamp`, which is an option you should set on Bunyan itself
-instead). Bunyan uses six log levels, so the seventh and eighth, if provided,
-will be ignored; by default Bunyan’s level names will be used.
-
-The object returned by `bunyanStream` is the Bunyan logging ‘channel’ definition
-in total. If you want to futz with this you can -- you can change its `name` or
-get the `stream` object itself from here.
-
-
-## Using with Ts.ED Logger
-
-For Ts.ED logger it's like so:
-
-```typescript
-import {Logger} from "@tsed/logger";
-import "@tsed/logger-insight";
-
-const logger = new Logger("loggerName");
-
-logger.appenders.set("stdout", {
-  type: "insight",
-  level: ["info"],
+const transport = pino.transport({
+  target: 'r7insight_node/pino',
   options: {
-    token: "the token",
-    region: "us"
-    // other options of insight
+    token: '<token>',
+    region: '<region>',
+    // Optional: override Pino -> Insight level mapping
+    // levelMap: { 10: 'debug', 20: 'debug', 30: 'info', 40: 'warning', 50: 'err', 60: 'crit' }
   }
 });
+
+const logger = pino(transport);
+logger.info({ foo: 'bar' }, 'hello');
 ```
 
-As with Winston, the options argument takes the normal constructor options.
-
-See more details on [Ts.ED logger](https://logger.tsed.io/appenders/insight.html)
+The transport maps Pino levels to Insight levels; you can override the mapping with `levelMap`.

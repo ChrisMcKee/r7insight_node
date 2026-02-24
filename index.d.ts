@@ -15,8 +15,6 @@ declare class r7insight_node {
 
     static bufferDrainEvent: string;
 
-    static bunyanStream(opts: any): any;
-
     static captureRejectionSymbol: any;
 
     static captureRejections: boolean;
@@ -46,6 +44,8 @@ declare class r7insight_node {
     static on(emitter: any, event: any): any;
 
     static once(emitter: any, name: any): any;
+
+    static pinoTransport(opts: any): any;
 
     static pipeWritableEvent: string;
 
@@ -35835,4 +35835,3 @@ declare namespace r7insight_node {
     }
 
 }
-

@@ -1,14 +1,14 @@
 {
   "name": "r7insight_node",
   "version": "3.3.1",
-  "description": "Rapid7 Insight Platform client for node; use with or without Winston or Bunyan.",
+  "description": "Rapid7 Insight Platform client for node; use with or without Winston or Pino.",
   "keywords": [
     "logentries",
     "logentries.com",
     "logs",
     "logging",
     "winston",
-    "bunyan",
+    "pino",
     "insightops",
     "insightidr",
     "rapid7",
@@ -55,19 +55,16 @@
     }
   },
   "devDependencies": {
-    "bunyan": "^1.8.12",
-    "eslint": "^5.16.0",
-    "eslint-config-rapid7": "^3.1.0",
-    "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-jsx-a11y": "^6.2.3",
-    "eslint-plugin-react": "^7.16.0",
-    "eslint-plugin-react-hooks": "^1.7.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.2",
     "estraverse": "^4.3.0",
     "estraverse-fb": "^1.3.2",
+    "globals": "^17.3.0",
     "install": "^0.13.0",
     "mitm": "^1.7.0",
-    "tap-spec": "^5.0.0",
-    "tape": "^4.11.0",
+    "pino": "^8.21.0",
+    "tap-spec": "^2.2.2",
+    "tape": "^2.9.1",
     "winston": "^3.2.1",
     "winston-transport": "4.3.0"
   }
